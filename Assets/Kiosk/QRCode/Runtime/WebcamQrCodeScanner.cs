@@ -602,7 +602,7 @@ namespace Kiosk.QR
         {
             if (enableDetailedDiagnostics)
             {
-                Debug.Log($"[QR Scanner] {message}", this);
+                // Debug.Log($"[QR Scanner] {message}", this);
             }
         }
 
