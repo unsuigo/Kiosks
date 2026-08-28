@@ -1,0 +1,19 @@
+{
+  "name": "Kiosk.QR.PlayModeTests",
+  "rootNamespace": "Kiosk.QR.Tests",
+  "references": [
+    "Kiosk.QR"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

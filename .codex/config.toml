@@ -1,0 +1,20 @@
+[mcp_servers.ai-game-developer]
+enabled = true
+startup_timeout_sec = 30
+tool_timeout_sec = 300
+url = "http://localhost:21650/p/5ce4eb90"
+
+[mcp_servers.ai-game-developer.tools.script-execute]
+approval_mode = "approve"
+
+[mcp_servers.ai-game-developer.tools.assets-refresh]
+approval_mode = "approve"
+
+[mcp_servers.ai-game-developer.tools.tests-run]
+approval_mode = "approve"
+
+[mcp_servers.ai-game-developer.tools.gameobject-component-modify]
+approval_mode = "approve"
+
+[mcp_servers.ai-game-developer.tools.scene-save]
+approval_mode = "approve"
