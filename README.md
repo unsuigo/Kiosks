@@ -1,46 +1,36 @@
-# Kiosk Test
+# Interactive Exhibition Kiosk Prototype
 
-Reusable Unity foundation for interactive exhibition kiosks and installations.
+A Unity-based prototype for interactive exhibition kiosks combining **computer vision, QR ticket scanning, backend validation, local persistence, and visitor presence tracking**.
 
-The project explores a production-oriented kiosk architecture built around Unity, computer vision, QR ticket scanning, backend validation, local data storage, visitor presence detection, and hardware integration.
+The project is designed as a reusable technical foundation rather than a single-purpose kiosk application. The current version demonstrates a working end-to-end flow from a physical camera input to ticket validation through a REST backend.
 
-The current prototype already implements a working end-to-end flow from a physical camera to ticket validation through a REST backend.
+## Tech stack
 
----
-
-## Unity version
-
-- Unity 6.3
-- `6000.3.19f1`
-
----
+- **Unity 6.3** (`6000.3.19f1`)
+- **C#**
+- **MediaPipe Unity Plugin** — face detection / camera source
+- **ZXing** — QR decoding
+- **ASP.NET Core (.NET 8)** — local backend
+- **Entity Framework Core**
+- **SQLite**
 
 ## Current status
 
-Working integrated kiosk prototype.
+The integrated `KioskMain` scene currently supports:
 
-Implemented and verified:
+- one shared physical webcam;
+- MediaPipe face detection;
+- QR recognition from the same camera stream;
+- REST ticket validation;
+- SQLite-backed ticket lookup;
+- timeout / retry handling;
+- mock Bearer authentication;
+- visitor presence tracking;
+- face- and QR-driven activity;
+- `Idle` / `Active` presence state;
+- modular interfaces between camera, scanner, presence, and backend layers.
 
-- Single shared webcam for multiple computer-vision tasks
-- MediaPipe Face Detection
-- QR code recognition with ZXing
-- Shared camera texture between MediaPipe and QR scanner
-- REST ticket validation
-- ASP.NET Core backend
-- SQLite database
-- Entity Framework Core
-- Test Bearer authentication
-- Request timeout and retry handling
-- Visitor presence detection
-- Face-based activity tracking
-- QR-based activity tracking
-- Idle / Active presence state
-- Modular interfaces for scanner and detector implementations
-- Separate runtime, demo and integration responsibilities
-
----
-
-## Current architecture
+## Architecture
 
 ```text
                          Physical Webcam
@@ -52,364 +42,332 @@ Implemented and verified:
                         /                 \
                        /                   \
                       v                     v
-            Face Detection          TextureQrCodeScanner
+             Face Detection          TextureQrCodeScanner
                   |                         |
                   |                         v
                   |                    ZXing Decoder
                   |                         |
                   |                    QR Detected
-                  |                         |
-                  |            +------------+------------+
-                  |            |                         |
-                  v            v                         v
-           Presence       Presence Activity      Ticket Validation
-           Activity                                    |
-                  \                                     v
-                   \                              REST Client
-                    \                                    |
-                     +------> Kiosk Presence             v
-                              Controller          ASP.NET Core API
-                                  |                      |
-                           Idle / Active                 v
-                                                   SQLite / EF Core
+                  |                    /          \
+                  v                   v            v
+          Presence Activity    Presence Activity   Ticket Validation
+                  \                   /                 |
+                   \                 /                  v
+                    +----> KioskPresenceController   RestTicketService
+                              |                          |
+                         Idle / Active                   v
+                                                 ASP.NET Core API
+                                                        |
+                                                        v
+                                                   EF Core / SQLite
+```
 
-                                                   Features
-Face Detection
+### Key design decision: one camera owner
 
-Face detection is implemented using the MediaPipe Unity Plugin and the BlazeFace short-range model.
+A physical webcam is opened only once.
 
-Current configuration:
+MediaPipe owns the webcam and exposes the current camera texture. Other systems consume that texture instead of opening the device independently.
 
-Delegate:                 CPU
-Image Read Mode:          CPUAsync
-Model:                    BlazeFace short-range
-Running Mode:             LIVE_STREAM
-Min Detection Confidence: 0.5
-Min Suppression Threshold:0.3
-Num Faces:                3
-
-The kiosk-specific runner is:
-
-KioskFaceDetectorRunner
-
-It exposes:
-
-HasFace
-FaceDetected
-FaceLost
-CurrentCameraTexture
-
-A short face-loss delay is used to prevent individual missed frames from constantly switching the face state.
-
-Current behavior:
-
-Face appears
-→ FaceDetected immediately
-
-Temporary missed detections
-→ ignored
-
-Face absent for ~2 seconds
-→ FaceLost
-Shared Camera Architecture
-
-The original QR scanner and MediaPipe sample both used their own webcam access.
-
-The integrated kiosk scene now uses:
-
+```text
 MediaPipe ImageSource
         |
         v
 Shared Texture
-        |
-        +--> Face Detection
-        |
-        +--> KioskCameraBridge
-                  |
-                  v
-          TextureQrCodeScanner
+    |         |
+    v         v
+Face CV   QR Scanner
+```
 
-KioskCameraBridge transfers the currently active MediaPipe texture to the QR scanner.
+This avoids camera contention and makes it possible to run face detection and QR recognition simultaneously.
 
-Verified camera resolution:
+## Main components
 
-1280 × 720
-QR Code Scanning
+### `KioskFaceDetectorRunner`
 
-QR recognition uses ZXing.
-
-There are currently two scanner implementations.
-
-WebcamQrCodeScanner
-
-Standalone scanner used by the original QR demo.
-
-It owns its own:
-
-WebCamTexture
-
-and is useful for isolated QR testing.
-
-TextureQrCodeScanner
-
-Used by the integrated kiosk scene.
-
-It does not open or stop the webcam.
-
-Instead it receives an external Unity Texture supplied by KioskCameraBridge.
+Kiosk-specific wrapper around the MediaPipe Face Detection pipeline.
 
 Responsibilities:
 
-Read camera frames
-Decode QR codes
-Duplicate suppression
-Scanner state
-Diagnostics
-Optional camera preview
-QR detection events
+- face detection;
+- MediaPipe annotation output;
+- `HasFace` state;
+- `FaceDetected` / `FaceLost` events;
+- access to the current camera texture.
 
-Both scanner implementations use the common interface:
+The detector uses a short loss delay so isolated missed frames do not immediately produce a `FaceLost` event.
 
-IQRCodeScanner
+```text
+Face appears
+→ FaceDetected immediately
 
-This keeps the rest of the application independent from how the camera source is implemented.
+Temporary missed frames
+→ ignored
 
-QR Scanner UI
+Face continuously absent for ~2 seconds
+→ FaceLost
+```
 
-The QR demo UI is handled separately by:
+### `KioskCameraBridge`
 
-QRCodeScannerDemoController
+Connects the MediaPipe-owned camera stream to the QR scanner.
 
-It is responsible only for:
+```text
+KioskFaceDetectorRunner.CurrentCameraTexture
+                    |
+                    v
+            KioskCameraBridge
+                    |
+                    v
+           TextureQrCodeScanner
+```
 
-Start Scan button
-Stop Scan button
-Scanner status
-Last decoded QR value
+The shared camera texture has been verified at `1280 × 720`.
 
-The scanner itself remains a separate runtime component.
+### `IQRCodeScanner`
 
-This separation allows the same UI controller to work with either:
+Common abstraction for QR scanning.
 
-WebcamQrCodeScanner
+The project currently contains two implementations:
 
-or:
+- `WebcamQrCodeScanner` — standalone scanner that owns its webcam, retained for isolated QR testing;
+- `TextureQrCodeScanner` — integrated scanner that consumes an externally supplied texture.
 
-TextureQrCodeScanner
-Ticket Validation
+This allows higher-level systems to depend on scanner behavior rather than on a specific camera implementation.
 
-Detected QR codes are sent to the local backend through:
+### `TextureQrCodeScanner`
 
-QrTicketValidationDemoController
-        |
-        v
-ITicketService
-        |
-        v
-RestTicketService
+Responsibilities:
 
-Current endpoint:
+- external texture input;
+- frame sampling;
+- ZXing decoding;
+- duplicate suppression;
+- scanner state;
+- diagnostics;
+- optional preview;
+- QR detection events.
 
-POST http://localhost:5123/api/tickets/validate
+Current test settings:
 
-Example request:
+```text
+Scan rate:              7 scans/sec
+Duplicate cooldown:     2 sec
+Initialization timeout: 8 sec
+Auto start:             disabled
+```
 
-{
-  "code": "2660488771"
-}
+### `QRCodeScannerDemoController`
 
-Example successful response:
+UI-only controller for:
 
-{
-  "valid": true,
-  "message": "Ticket is valid"
-}
-REST client
+- Start Scan;
+- Stop Scan;
+- status text;
+- last decoded QR value.
 
-The Unity REST client currently supports:
+The UI is intentionally separated from the scanner implementation.
 
-POST requests
-JSON serialization
-JSON response parsing
-HTTP status handling
-Connection-error handling
-Timeout handling
-Limited retry
-Bearer authentication
+### `QrTicketValidationDemoController`
 
-Current prototype settings:
+Subscribes to `IQRCodeScanner.QrCodeDetected` and starts ticket validation.
 
-Timeout:       3 seconds
-Max attempts:  2
-Retry delay:   1 second
-
-Current test authorization:
-
-Authorization: Bearer kiosk-test-token-123
-
-The hardcoded token is for development only.
-
-Backend
-
-A local ASP.NET Core backend is included for development and integration testing.
-
-Technology stack:
-
-.NET 8
-ASP.NET Core Minimal API
-Entity Framework Core
-SQLite
-
-Backend project:
-
-BackendMock
-
-Database:
-
-kiosk.db
-Starting the backend
-
-From Git Bash:
-
-cd /d/Development/Unity/Tests/Kiosk_test/BackendMock
-dotnet run
-
-The API should start at:
-
-http://localhost:5123
-
-Health check:
-
-http://localhost:5123/health
-
-Expected response:
-
-{
-  "status": "ok"
-}
-Test tickets
-
-Current database test values:
-
-Ticket code	Result
-2660488771	Valid
-5555555555	Valid
-9999999999	Inactive
-Unknown code	Not found
-End-to-end ticket flow
-
-The following flow has been verified:
-
-Physical QR code
-      |
-      v
-Webcam
-      |
-      v
-MediaPipe ImageSource
-      |
-      v
-Shared Camera Texture
-      |
-      v
-TextureQrCodeScanner
-      |
-      v
-ZXing
-      |
-      v
+```text
 QrCodeDetected
       |
       v
-Ticket Validation Controller
+QrTicketValidationDemoController
+      |
+      v
+ITicketService
       |
       v
 RestTicketService
+```
+
+An `isValidating` guard prevents overlapping validation requests.
+
+### `RestTicketService`
+
+Unity REST client responsible for ticket validation.
+
+Current behavior:
+
+- JSON serialization / deserialization;
+- POST requests;
+- HTTP status handling;
+- connection-error handling;
+- request timeout;
+- limited retry;
+- mock Bearer authentication.
+
+Prototype retry policy:
+
+```text
+Timeout:       3 sec
+Max attempts:  2
+Retry delay:   1 sec
+```
+
+A fresh `UnityWebRequest` is created for every retry attempt.
+
+### `KioskPresenceController`
+
+Application-level visitor presence logic.
+
+This is intentionally separated from raw face detection.
+
+The detector answers:
+
+> Is a face currently detected?
+
+The presence controller answers:
+
+> Is a visitor currently interacting with the kiosk?
+
+Current activity sources:
+
+```text
+Face Detection
+QR Detection
       |
       v
+RegisterActivity()
+      |
+      v
+Idle <-> Active
+```
+
+Current presence timeout: `10 sec`.
+
+This means temporary face loss does not immediately return the kiosk to idle. For example, a visitor can hold a phone or printed ticket in front of their face while still being treated as active.
+
+## End-to-end ticket flow
+
+The following pipeline has been verified:
+
+```text
+Physical QR
+    |
+    v
+Webcam
+    |
+    v
+MediaPipe ImageSource
+    |
+    v
+Shared Camera Texture
+    |
+    v
+TextureQrCodeScanner
+    |
+    v
+ZXing
+    |
+    v
+QrCodeDetected
+    |
+    v
+Ticket Validation Controller
+    |
+    v
+RestTicketService
+    |
+    v
 ASP.NET Core
-      |
-      v
+    |
+    v
 Entity Framework Core
-      |
-      v
+    |
+    v
 SQLite
-      |
-      v
-HTTP 200 + JSON
-      |
-      v
+    |
+    v
+HTTP response
+    |
+    v
 Unity
+```
 
-Example result:
+Example successful result:
 
+```text
 QR received: '2660488771'
 HTTP attempt 1/2
 HTTP status: 200
 Request result: Success
 TICKET RESULT: valid=True, message='Ticket is valid'
-Visitor Presence
+```
 
-The project contains a kiosk-level presence system:
+## Backend
 
-KioskPresenceController
+The repository includes a small local backend for development and integration testing.
 
-Presence is intentionally separated from raw face detection.
+Stack:
 
-The face detector answers:
+```text
+.NET 8
+ASP.NET Core Minimal API
+Entity Framework Core
+SQLite
+```
 
-Is a face currently detected?
+Main endpoint:
 
-The presence controller answers:
+```http
+POST /api/tickets/validate
+```
 
-Is a visitor currently interacting with the kiosk?
+Example request:
 
-Current activity sources:
+```json
+{
+  "code": "2660488771"
+}
+```
 
-Face Detection
-QR Detection
+Example response:
 
-Both feed:
+```json
+{
+  "valid": true,
+  "message": "Ticket is valid"
+}
+```
 
-RegisterActivity()
+### Running the backend
 
-Current presence states:
+From the repository root:
 
-Idle
-Active
-Presence behavior
+```bash
+cd BackendMock
+dotnet run
+```
 
-Current configuration:
+Default development address:
 
-Face loss filtering:   ~2 seconds
-Presence timeout:      10 seconds
+```text
+http://localhost:5123
+```
 
-Example:
+Health check:
 
-Face detected
-→ ACTIVE
+```text
+GET /health
+```
 
-Face disappears
-→ Face detector waits ~2 seconds
+Expected response:
 
-FaceLost
-→ kiosk remains ACTIVE
+```json
+{
+  "status": "ok"
+}
+```
 
-No further activity for 10 seconds
-→ IDLE
+## Scene structure
 
-QR detection also refreshes presence activity.
+Integrated prototype scene:
 
-This prevents the kiosk from becoming idle when a visitor temporarily covers their face with a phone or ticket.
-
-Main scene
-
-The integrated prototype scene is:
-
-KioskMain
-
-Conceptual hierarchy:
-
+```text
 KioskMain
 ├── Main Camera
 ├── Directional Light
@@ -425,10 +383,13 @@ KioskMain
 │   └── QrTicketValidationDemoController
 ├── KioskCameraBridge
 └── KioskPresenceController
-Project organization
+```
 
-The kiosk-specific code is organized by feature.
+## Project organization
 
+Kiosk-specific code is grouped by feature:
+
+```text
 Assets/Kiosk/
 
 Camera/
@@ -449,49 +410,31 @@ TicketValidation/
 
 Presence/
 └── Runtime/
+```
 
 Main namespaces:
 
+```text
 Kiosk.Camera
 Kiosk.ComputerVision.FaceDetection
 Kiosk.QR
 Kiosk.QR.Demo
 Kiosk.TicketValidation
 Kiosk.Presence
+```
 
-Third-party MediaPipe code remains under its own:
+Third-party MediaPipe code remains under its own `Mediapipe.*` namespace hierarchy.
 
-Mediapipe.*
+## Engineering principles demonstrated
 
-namespace hierarchy.
+### Separation of responsibilities
 
-Design principles
+```text
+KioskFaceDetectorRunner
+→ computer vision / face state
 
-The current prototype follows several architectural rules.
-
-One hardware owner
-
-A physical device should normally have a single owner.
-
-For the webcam:
-
-MediaPipe owns the webcam.
-
-Other components consume its data.
-
-Interfaces between systems
-
-Subsystems communicate through abstractions where useful:
-
-IFaceDetector
-IQRCodeScanner
-ITicketService
-
-This allows implementations to be replaced without rewriting higher-level kiosk logic.
-
-Separate hardware, application and UI responsibilities
-
-For example:
+KioskCameraBridge
+→ shared camera transport
 
 TextureQrCodeScanner
 → QR recognition
@@ -500,82 +443,135 @@ QRCodeScannerDemoController
 → UI
 
 QrTicketValidationDemoController
-→ business/integration flow
+→ application integration flow
+
+RestTicketService
+→ HTTP communication
 
 KioskPresenceController
 → visitor activity state
-Current milestone
+```
+
+### Interface-driven integration
+
+Subsystems communicate through abstractions where useful:
+
+```text
+IFaceDetector
+IQRCodeScanner
+ITicketService
+```
+
+This keeps higher-level kiosk logic independent from individual implementations.
+
+### Sensor state vs. application state
+
+Raw sensor output is not treated as application state directly.
+
+```text
+Face detector
+→ short CV hysteresis
+
+Presence controller
+→ longer visitor inactivity timeout
+```
+
+This reduces flicker and avoids unrealistic kiosk behavior when sensor data is temporarily lost.
+
+## Current milestone
 
 Completed:
 
-[✓] Unity kiosk foundation
-[✓] MediaPipe integration
-[✓] Face detection
-[✓] Face detection hysteresis
-[✓] ZXing QR scanning
-[✓] QR duplicate filtering
-[✓] Shared webcam architecture
-[✓] Shared camera texture
-[✓] KioskCameraBridge
-[✓] IQRCodeScanner abstraction
-[✓] REST client
-[✓] ASP.NET Core backend
-[✓] Bearer test authentication
-[✓] Timeout / retry behavior
-[✓] Entity Framework Core
-[✓] SQLite ticket storage
-[✓] QR → REST → DB validation
-[✓] KioskPresenceController
-[✓] Face activity
-[✓] QR activity
-[✓] Idle / Active presence state
-[✓] Integrated KioskMain scene
-Next steps
+- [x] Unity kiosk foundation
+- [x] MediaPipe integration
+- [x] Face detection
+- [x] Face detection hysteresis
+- [x] ZXing QR scanning
+- [x] QR duplicate filtering
+- [x] Shared webcam architecture
+- [x] Shared camera texture
+- [x] `KioskCameraBridge`
+- [x] `IQRCodeScanner` abstraction
+- [x] REST client
+- [x] ASP.NET Core backend
+- [x] Mock authentication
+- [x] Timeout / retry behavior
+- [x] Entity Framework Core
+- [x] SQLite ticket storage
+- [x] QR → REST → DB validation
+- [x] `KioskPresenceController`
+- [x] Face activity
+- [x] QR activity
+- [x] `Idle` / `Active` presence state
+- [x] Integrated `KioskMain` scene
 
-Planned development:
+## Known limitations
 
-[ ] Touch / pointer activity
-[ ] NFC / RFID input
-[ ] Full kiosk state machine
-[ ] WaitingForTicket state
-[ ] Validating state
-[ ] Experience state
-[ ] Reset flow
-[ ] Stop repeated ticket validation after successful scan
-[ ] Offline ticket validation strategy
-[ ] Diagnostics and persistent logging
-[ ] Hardware disconnect / recovery handling
-[ ] Watchdog / auto-restart
-[ ] Automatic startup on Windows kiosk PC
-[ ] Remote status / monitoring
-[ ] Deployment and update strategy
+This is still a prototype. Current limitations include:
+
+- the same QR may be emitted again after the duplicate cooldown;
+- a successfully validated ticket does not yet transition the application into a dedicated experience state;
+- authentication is development-only;
+- offline validation is not implemented yet;
+- kiosk watchdog / auto-recovery is not implemented yet;
+- hardware disconnect recovery is still limited;
+- deployment and remote monitoring are not implemented yet.
+
+## Next steps
+
+Planned:
+
+- [ ] Touch / pointer activity
+- [ ] NFC / RFID input
+- [ ] Full kiosk state machine
+- [ ] `WaitingForTicket`
+- [ ] `Validating`
+- [ ] `Experience`
+- [ ] Result / reset flow
+- [ ] Stop repeated validation after a successful scan
+- [ ] Offline ticket validation strategy
+- [ ] Persistent diagnostics / logging
+- [ ] Hardware disconnect and recovery handling
+- [ ] Watchdog / automatic restart
+- [ ] Windows kiosk auto-start
+- [ ] Remote status / monitoring
+- [ ] Deployment and update strategy
 
 Target application flow:
 
+```text
 Idle
-  ↓
+  |
+  v
 Visitor Detected
-  ↓
+  |
+  v
 Waiting For Ticket
-  ↓
-Validating Ticket
-  ↓
+  |
+  v
+Validating
+  |
+  v
 Experience
-  ↓
+  |
+  v
 Result / Reset
-  ↓
+  |
+  v
 Idle
-Purpose
+```
 
-This repository is intended to evolve into a reusable technical foundation for interactive exhibition installations rather than a single-purpose kiosk application.
+## Goal
 
-Future installations should be able to reuse the same core architecture while replacing individual modules such as:
+The long-term goal is a reusable kiosk framework for interactive exhibitions where individual modules can be replaced without rewriting the whole application.
 
-ticket providers;
-cameras;
-QR scanners;
-NFC / RFID devices;
-sensors;
-backend endpoints;
-exhibition experiences;
-UI and branding.
+Potential replaceable modules include:
+
+- ticket providers;
+- QR implementations;
+- cameras;
+- NFC / RFID readers;
+- sensors;
+- backend endpoints;
+- exhibition experiences;
+- UI / branding.
