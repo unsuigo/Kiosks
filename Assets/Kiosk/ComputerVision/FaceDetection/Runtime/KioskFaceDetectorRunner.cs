@@ -1,11 +1,20 @@
 using System;
 using System.Collections;
-using Mediapipe.Tasks.Vision.FaceDetector;
 using UnityEngine;
 using UnityEngine.Rendering;
-using FaceDetectionResult = Mediapipe.Tasks.Components.Containers.DetectionResult;
 
-namespace Mediapipe.Unity.Sample.FaceDetection
+using Mediapipe;
+using Mediapipe.Tasks.Vision.FaceDetector;
+using Mediapipe.Unity;
+using Mediapipe.Unity.Sample;
+using Mediapipe.Unity.Sample.FaceDetection;
+
+using FaceDetectionResult = Mediapipe.Tasks.Components.Containers.DetectionResult;
+using Experimental = Mediapipe.Unity.Experimental;
+using Tasks = Mediapipe.Tasks;
+
+
+namespace Kiosk.ComputerVision.FaceDetection
 {
   public class KioskFaceDetectorRunner : VisionTaskApiRunner<FaceDetector>, IFaceDetector
   {

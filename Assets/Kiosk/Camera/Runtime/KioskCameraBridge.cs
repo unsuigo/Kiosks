@@ -1,5 +1,5 @@
+using Kiosk.ComputerVision.FaceDetection;
 using Kiosk.QR;
-using Mediapipe.Unity.Sample.FaceDetection;
 using UnityEngine;
 
 namespace Kiosk.Camera

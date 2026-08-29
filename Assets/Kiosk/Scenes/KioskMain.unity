@@ -264,6 +264,52 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &575634569
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 575634571}
+  - component: {fileID: 575634570}
+  m_Layer: 0
+  m_Name: KioskPresenceController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &575634570
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 575634569}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2916a9ad85e913e40b7bcf21d0be2f43, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Kiosk.Presence.KioskPresenceController
+  faceDetectorSource: {fileID: 1064799469}
+  inactivityTimeout: 10
+--- !u!4 &575634571
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 575634569}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -9.22207, y: 5.5762, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &585814018
 GameObject:
   m_ObjectHideFlags: 0
@@ -765,7 +811,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1064799461}
-  - component: {fileID: 1064799468}
   - component: {fileID: 1064799469}
   m_Layer: 0
   m_Name: Solution
@@ -789,22 +834,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1064799468
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1064799459}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0b86ba34db2c888778bdb2f439fd1c76, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _bootstrapPrefab: {fileID: 968918444066301895, guid: 1146a9de09159a948b683e94fb3d3c95, type: 3}
-  screen: {fileID: 1006057043}
-  runningMode: 0
-  _detectionResultAnnotationController: {fileID: 1006057045}
 --- !u!114 &1064799469
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -926,7 +955,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1b9fa26ae20ac7d49a8bf9a981e213fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TicketValidationDemoController
-  qrScannerSource: {fileID: 1535041766}
+  qrScannerSource: {fileID: 1535041768}
   baseUrl: http://localhost:5123
 --- !u!4 &1339017727
 Transform:
@@ -1229,8 +1258,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1535041767}
-  - component: {fileID: 1535041766}
-  - component: {fileID: 1535041765}
   - component: {fileID: 1535041768}
   m_Layer: 0
   m_Name: QR Scanner
@@ -1239,51 +1266,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1535041765
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1535041764}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 08cc47c0cb786f44787845a4a2529fcc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Kiosk.QR.Demo.QRCodeScannerDemoController
-  scanner: {fileID: 1535041766}
-  startButton: {fileID: 586231597}
-  stopButton: {fileID: 585814020}
-  statusText: {fileID: 622283563}
-  decodedValueText: {fileID: 1359608780}
---- !u!114 &1535041766
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1535041764}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6cd63d4706be9414eabdc96be191ba68, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Kiosk.QR::Kiosk.QR.WebcamQrCodeScanner
-  cameraName: 
-  cameraIndex: 0
-  requestedWidth: 1280
-  requestedHeight: 720
-  requestedFps: 30
-  scansPerSecond: 7
-  duplicateCooldownSeconds: 2
-  initializationTimeoutSeconds: 8
-  cameraFrameTimeoutSeconds: 5
-  decoderFailureLimit: 3
-  autoStart: 0
-  preview: {fileID: 1516683880}
-  logStatusMessages: 1
-  enableDetailedDiagnostics: 1
-  logDecodedPayloads: 1
-  diagnosticLogEveryNDecodes: 30
 --- !u!4 &1535041767
 Transform:
   m_ObjectHideFlags: 0
@@ -1333,6 +1315,7 @@ GameObject:
   - component: {fileID: 1713857476}
   - component: {fileID: 1713857475}
   - component: {fileID: 1713857474}
+  - component: {fileID: 1713857478}
   m_Layer: 0
   m_Name: Canvas
   m_TagString: Untagged
@@ -1429,6 +1412,23 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &1713857478
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1713857473}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08cc47c0cb786f44787845a4a2529fcc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Kiosk.QR.Demo.QRCodeScannerDemoController
+  startButton: {fileID: 586231597}
+  stopButton: {fileID: 585814020}
+  statusText: {fileID: 622283563}
+  decodedValueText: {fileID: 1359608780}
+  scanner: {fileID: 1535041768}
 --- !u!1 &1806680259
 GameObject:
   m_ObjectHideFlags: 0
@@ -1943,7 +1943,7 @@ PrefabInstance:
     - target: {fileID: 8571076843237194833, guid: 140d1d2c406167c50819d89f86d9092e, type: 3}
       propertyPath: _baseRunner
       value: 
-      objectReference: {fileID: 1064799468}
+      objectReference: {fileID: 0}
     - target: {fileID: 8571076843980202029, guid: 140d1d2c406167c50819d89f86d9092e, type: 3}
       propertyPath: contents
       value: 
@@ -1994,3 +1994,4 @@ SceneRoots:
   - {fileID: 1713857477}
   - {fileID: 1339017727}
   - {fileID: 1429986243}
+  - {fileID: 575634571}
