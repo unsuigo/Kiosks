@@ -5,36 +5,50 @@ namespace Kiosk.TicketValidation
 {
     public class QrTicketValidationDemoController : MonoBehaviour
     {
-        [SerializeField]
-        private WebcamQrCodeScanner qrScanner;
+        [Header("QR Scanner")]
+        [SerializeField] private MonoBehaviour qrScannerSource;
 
-        [SerializeField]
-        private string baseUrl = "http://localhost:5123";
+        [Header("Backend")]
+        [SerializeField] private string baseUrl = "http://localhost:5123";
 
+        private IQRCodeScanner qrScanner;
         private ITicketService ticketService;
 
         private bool isValidating;
 
+
         private void Awake()
         {
+            qrScanner = qrScannerSource as IQRCodeScanner;
+
+            if (qrScanner == null)
+            {
+                Debug.LogError(
+                    "[Ticket Validation] QR Scanner Source must implement IQRCodeScanner.",
+                    this);
+            }
+
             ticketService = new RestTicketService(baseUrl);
         }
 
+
         private void OnEnable()
         {
-            if (qrScanner != null)
-            {
-                qrScanner.QrCodeDetected += OnQrCodeDetected;
-            }
+            if (qrScanner == null)
+                return;
+
+            qrScanner.QrCodeDetected += OnQrCodeDetected;
         }
+
 
         private void OnDisable()
         {
-            if (qrScanner != null)
-            {
-                qrScanner.QrCodeDetected -= OnQrCodeDetected;
-            }
+            if (qrScanner == null)
+                return;
+
+            qrScanner.QrCodeDetected -= OnQrCodeDetected;
         }
+
 
         private void OnQrCodeDetected(string code)
         {
@@ -53,14 +67,17 @@ namespace Kiosk.TicketValidation
             StartCoroutine(
                 ticketService.ValidateTicket(
                     code,
+
                     response =>
                     {
                         isValidating = false;
 
                         Debug.Log(
-                            $"TICKET RESULT: valid={response.valid}, " +
+                            $"TICKET RESULT: " +
+                            $"valid={response.valid}, " +
                             $"message='{response.message}'");
                     },
+
                     error =>
                     {
                         isValidating = false;

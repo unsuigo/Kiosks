@@ -6,17 +6,26 @@ namespace Kiosk.QR.Demo
     [DisallowMultipleComponent]
     public sealed class QRCodeScannerDemoController : MonoBehaviour
     {
-        [SerializeField] private WebcamQrCodeScanner scanner;
+        //[SerializeField] private WebcamQrCodeScanner scanner;
         [SerializeField] private Button startButton;
         [SerializeField] private Button stopButton;
         [SerializeField] private Text statusText;
         [SerializeField] private Text decodedValueText;
-
+        [SerializeField] private MonoBehaviour scanner;
+        private IQRCodeScanner scannerApi;
         private void Awake()
         {
-            if (scanner == null)
+            scannerApi = scanner as IQRCodeScanner;
+
+            if (scannerApi == null)
             {
-                scanner = GetComponent<WebcamQrCodeScanner>();
+                Debug.LogError(
+                    "[QR Demo] Scanner must implement IQRCodeScanner.",
+                    this);
+            }
+            if (scannerApi == null)
+            {
+                scannerApi = GetComponent<WebcamQrCodeScanner>();
             }
 
             if (startButton != null)
@@ -29,11 +38,11 @@ namespace Kiosk.QR.Demo
                 stopButton.onClick.AddListener(StopScanner);
             }
 
-            if (scanner != null)
+            if (scannerApi != null)
             {
-                scanner.QrCodeDetected += HandleQrCodeDetected;
-                scanner.StatusChanged += HandleStatusChanged;
-                SetStatus(scanner.State, "Ready.");
+                scannerApi.QrCodeDetected += HandleQrCodeDetected;
+                scannerApi.StatusChanged += HandleStatusChanged;
+                SetStatus(scannerApi.State, "Ready.");
             }
             else
             {
@@ -55,19 +64,19 @@ namespace Kiosk.QR.Demo
 
             if (scanner != null)
             {
-                scanner.QrCodeDetected -= HandleQrCodeDetected;
-                scanner.StatusChanged -= HandleStatusChanged;
+                scannerApi.QrCodeDetected -= HandleQrCodeDetected;
+                scannerApi.StatusChanged -= HandleStatusChanged;
             }
         }
 
         private void StartScanner()
         {
-            scanner?.StartScanning();
+            scannerApi?.StartScanning();
         }
 
         private void StopScanner()
         {
-            scanner?.StopScanning();
+            scannerApi?.StopScanning();
         }
 
         private void HandleQrCodeDetected(string value)

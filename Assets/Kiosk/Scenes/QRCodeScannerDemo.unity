@@ -757,10 +757,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1339017725}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 55214a2da30248c408a06f2b4e4e2b41, type: 3}
+  m_Script: {fileID: 11500000, guid: 1b9fa26ae20ac7d49a8bf9a981e213fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TicketValidationDemoController
-  qrScanner: {fileID: 1535041766}
+  qrScannerSource: {fileID: 1535041766}
   baseUrl: http://localhost:5123
 --- !u!4 &1339017727
 Transform:
